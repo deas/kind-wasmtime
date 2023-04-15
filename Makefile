@@ -41,8 +41,13 @@ node-image: ## Build the custom kind node image
 
 .PHONY: crun-workload
 crun-workload: ## Build a wasm workload image and load it into kind
-	docker buildx build --platform wasi/wasm32 -t wasm-workload:v0.1.0 examples/crun/wasm-workload/
-	kind load docker-image wasm-workload:v0.1.0 -n wasmtime
+	docker buildx build --platform wasi/wasm32 -o type=docker,dest=- -t wasm-workload:v0.1.0 examples/crun/wasm-workload/ >wasm-workload-v0.1.0.tar 
+	kind -n wasmtime load image-archive wasm-workload-v0.1.0.tar
+# Process substitution does not work in bash posix mode used by make
+# kind -n wasmtime load image-archive <(docker buildx build --platform wasi/wasm32 -o type=docker,dest=- -t wasm-workload:v0.1.0 examples/crun/wasm-workload/)
+# The following appears to require docker desktop with experimental flags toda, did ont work on plain ce 23.0.3-1~ubuntu.20.04~focal for me
+# docker buildx build --platform wasi/wasm32 -t wasm-workload:v0.1.0 examples/crun/wasm-workload/
+# kind load docker-image wasm-workload:v0.1.0 -n wasmtime
 
 .PHONY: test-crun
 crun-test: ## Deploy a test job with mixed workloads and print their logs
@@ -53,8 +58,10 @@ crun-test: ## Deploy a test job with mixed workloads and print their logs
 
 .PHONY: spin-workload
 spin-workload: ## Build a wasm app with spin and load it into kind
-	docker buildx build --platform wasi/wasm32 -t spin-app:v0.1.0 examples/spin/app/
-	kind load docker-image spin-app:v0.1.0 -n wasmtime
+	docker buildx build --platform wasi/wasm32 -o type=docker,dest=- -t spin-app:v0.1.0 examples/spin/app/ > spin-app-v0.1.0.tar
+	kind -n wasmtime load image-archive spin-app-v0.1.0.tar
+#	docker buildx build --platform wasi/wasm32 -t spin-app:v0.1.0 examples/spin/app/
+#	kind load docker-image spin-app:v0.1.0 -n wasmtime
 
 .PHONY: spin-test
 spin-test: ## Deploy the spin app and curl its output
